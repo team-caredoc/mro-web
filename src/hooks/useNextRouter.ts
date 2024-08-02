@@ -1,8 +1,8 @@
 import { UrlObject } from "url";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import qs from "qs";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 type Url = (
   url: Pick<UrlObject, "pathname" | "query"> | string,
@@ -13,6 +13,8 @@ type Url = (
 interface Router {
   push: Url;
   replace: Url;
+  query: Pick<UrlObject, "query">;
+  pathname: string;
 }
 
 export type UseNextRouter = Omit<
@@ -24,6 +26,11 @@ export type UseNextRouter = Omit<
 export const useNextRouter = (): UseNextRouter => {
   const nextRouter = useRouter();
   const nextPathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const queryString = useCallback(() => {
+    return qs.parse(searchParams.toString());
+  }, [searchParams]);
 
   const router = useMemo(
     () =>
@@ -66,6 +73,8 @@ export const useNextRouter = (): UseNextRouter => {
       }),
     [nextRouter, nextPathname],
   );
+  Reflect.set(router, "query", queryString());
+  Reflect.set(router, "pathname", nextPathname);
 
   return router as unknown as UseNextRouter;
 };
