@@ -1,20 +1,21 @@
+"use client";
 import { UrlObject } from "url";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import qs from "qs";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 type Url = (
   url: Pick<UrlObject, "pathname" | "query"> | string,
-  options: {
+  options?: {
     scroll?: boolean;
   },
 ) => void;
 interface Router {
   push: Url;
   replace: Url;
-  query: Pick<UrlObject, "query">;
   pathname: string;
+  query: any;
 }
 
 export type UseNextRouter = Omit<
@@ -27,11 +28,6 @@ export const useNextRouter = (): UseNextRouter => {
   const nextRouter = useRouter();
   const nextPathname = usePathname();
   const searchParams = useSearchParams();
-
-  const queryString = useCallback(() => {
-    return qs.parse(searchParams.toString());
-  }, [searchParams]);
-
   const router = useMemo(
     () =>
       new Proxy(nextRouter, {
@@ -42,7 +38,7 @@ export const useNextRouter = (): UseNextRouter => {
           ) {
             return (
               ...args: [
-                Pick<UrlObject, "pathname" | "query"> | string,
+                  Pick<UrlObject, "pathname" | "query"> | string,
                 { scroll: boolean },
               ]
             ) => {
@@ -53,7 +49,6 @@ export const useNextRouter = (): UseNextRouter => {
               }
               const { pathname, query } = url;
               let path = pathname ?? "";
-
               if (query && !path) {
                 if (nextPathname === "/") {
                   path = `?${qs.stringify(query)}`;
@@ -73,8 +68,8 @@ export const useNextRouter = (): UseNextRouter => {
       }),
     [nextRouter, nextPathname],
   );
-  Reflect.set(router, "query", queryString());
   Reflect.set(router, "pathname", nextPathname);
+  Reflect.set(router, "query", qs.parse(searchParams.toString()));
 
   return router as unknown as UseNextRouter;
 };
