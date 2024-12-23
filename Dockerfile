@@ -6,45 +6,31 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+RUN npm config delete "//npm.pkg.github.com/:_authToken"
 
-RUN /bin/ash -c 'set -ex && \
-   ARCH=`uname -m` && \
-   if [ "$ARCH" == "aarch64" ]; then \
-   echo "aarch64" && \
-   apk add --update --no-cache python3 build-base gcc && ln -sf /usr/bin/python3 /usr/bin/python; \
-   else \
-   echo "x86_64"; \
-   fi'
+ARG NPM_REGISTRY_TOKEN
+RUN echo "Using GitHub token: $NPM_REGISTRY_TOKEN"
+RUN npm config set "//npm.pkg.github.com/:_authToken" "${NPM_REGISTRY_TOKEN}"
+
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 
 
 # Install dependencies based on the preferred package manager
-RUN corepack enable pnpm && pnpm i &&  npm install -g --arch=x64 --platform=linux --libc=glibc sharp
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /usr/local/lib/node_modules/sharp /usr/local/lib/node_modules/sharp
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-RUN /bin/ash -c 'set -ex && \
-   ARCH=`uname -m` && \
-   if [ "$ARCH" == "aarch64" ]; then \
-   echo "aarch64" && \
-   apk add --update --no-cache python3 build-base gcc && ln -sf /usr/bin/python3 /usr/bin/python; \
-   else \
-   echo "x86_64"; \
-   fi'
-
 
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
-ENV NEXT_SHARP_PATH=/usr/local/lib/node_modules/sharp
+
 
 RUN corepack enable pnpm && pnpm build
 
@@ -66,8 +52,6 @@ COPY --from=builder /app/public ./public
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
-ENV NEXT_SHARP_PATH=/usr/local/lib/node_modules/sharp
-COPY --from=builder --chown=nextjs:nodejs /usr/local/lib/node_modules/sharp /usr/local/lib/node_modules/sharp
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

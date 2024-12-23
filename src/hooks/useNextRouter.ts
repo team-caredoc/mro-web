@@ -1,6 +1,6 @@
 "use client";
-import { UrlObject } from "url";
 
+import { UrlObject } from "url";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import qs from "qs";
 import { useMemo } from "react";
@@ -38,7 +38,7 @@ export const useNextRouter = (): UseNextRouter => {
           ) {
             return (
               ...args: [
-                  Pick<UrlObject, "pathname" | "query"> | string,
+                Pick<UrlObject, "pathname" | "query"> | string,
                 { scroll: boolean },
               ]
             ) => {
