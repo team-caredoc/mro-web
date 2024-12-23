@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={Pretendard.variable}>
+    <html className={Pretendard.variable} lang="ko">
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -38,7 +38,7 @@ export const useNextRouter = (): UseNextRouter => {
           ) {
             return (
               ...args: [
-                  Pick<UrlObject, "pathname" | "query"> | string,
+                Pick<UrlObject, "pathname" | "query"> | string,
                 { scroll: boolean },
               ]
             ) => {
