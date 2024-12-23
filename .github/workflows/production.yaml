@@ -1,0 +1,69 @@
+name: Build and Push to ECR
+
+on:
+  push:
+   tags:
+     ## TODO CD에 맞게 수정
+     - from-prd-*
+env:
+  ## TODO CD에 맞게 수정
+  application-name: front-home
+  environment: production
+
+jobs:
+  pre-build:
+    runs-on: ubuntu-latest
+    outputs:
+      start-timestamp: ${{ steps.step1.outputs.start-timestamp }}
+      application-name: ${{ steps.step2.outputs.application-name }}
+      environment: ${{ steps.step3.outputs.environment }}
+    steps:
+      - id: step1
+        run: echo "start-timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - id: step2
+        run: echo "application-name=${{ env.application-name }}" >> "$GITHUB_OUTPUT"
+      - id: step3
+        run: echo "environment=${{ env.environment }}" >> "$GITHUB_OUTPUT"
+
+  slack-start:
+    needs: pre-build
+    uses: team-caredoc/actions/.github/workflows/deploy-start.yaml@main
+    with:
+      APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
+      ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
+
+  deploy:
+    needs: pre-build
+    uses: team-caredoc/actions/.github/workflows/front-nextjs.yaml@main
+    with:
+      APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
+      TAG: ${{ github.ref_name }}
+      ORG_ARGO_SERVER_URL: ${{ vars.ORG_PROD_ARGO_SERVER_URL }}
+      ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
+    secrets:
+      FRONT_ENV_BASE64: ${{ secrets.PROD_FRONT_ENV_BASE64 }}
+      ORG_ACTION_PTA: ${{ secrets.ORG_ACTION_PTA }}
+      ORG_SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
+      ORG_NPM_REGISTRY_TOKEN: ${{ secrets.ORG_NPM_REGISTRY_TOKEN }}
+      ORG_AWS_REGION: ${{ secrets.ORG_PROD_AWS_REGION }}
+      ORG_AWS_ACCOUNT_ID: ${{ secrets.ORG_PROD_AWS_ACCOUNT_ID }}
+      ORG_AWS_ACCESS_KEY_ID: ${{ secrets.ORG_PROD_AWS_ACCESS_KEY_ID }}
+      ORG_AWS_SECRET_ACCESS_KEY: ${{ secrets.ORG_PROD_AWS_SECRET_ACCESS_KEY }}
+      ORG_ARGO_USERNAME: ${{ secrets.ORG_PROD_ARGO_USERNAME }}
+      ORG_ARGO_PASSWORD: ${{ secrets.ORG_PROD_ARGO_PASSWORD }}
+
+  deploy-done:
+    needs: [deploy,pre-build]
+    if: ${{ always() }}
+    uses: team-caredoc/actions/.github/workflows/deploy-done.yaml@main
+    with:
+      APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
+      DEPLOY_RESULT: ${{ needs.deploy.result }}
+      ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
+      START_TIME: ${{ needs.pre-build.outputs.start-timestamp }}
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
+
+
