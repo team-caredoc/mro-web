@@ -1,13 +1,15 @@
-name: Build and Push to ECR
+name: Build and Push to ECR (Dev)
 
 on:
   push:
-   tags:
-     ## TODO CD에 맞게 수정
-     - from-dev-*
+    tags:
+      ## TODO CD에 맞게 수정
+      - from-dev-*
 env:
-  ## TODO CD에 맞게 수정
+  ## TODO CD에 맞게 수정 ( https://github.com/team-caredoc/gitops/tree/main/cd 폴더명과 일치해야함 )
   application-name: front-home
+  ## TODO (optional) 위의 application-name과 argoCD의 application-name이 다를경우 입력해 줍니다.
+  argo-application-name:
   environment: development
 
 jobs:
@@ -16,13 +18,16 @@ jobs:
     outputs:
       start-timestamp: ${{ steps.step1.outputs.start-timestamp }}
       application-name: ${{ steps.step2.outputs.application-name }}
-      environment: ${{ steps.step3.outputs.environment }}
+      argo-application-name: ${{ steps.step3.outputs.argo-application-name }}
+      environment: ${{ steps.step4.outputs.environment }}
     steps:
       - id: step1
         run: echo "start-timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
       - id: step2
         run: echo "application-name=${{ env.application-name }}" >> "$GITHUB_OUTPUT"
       - id: step3
+        run: echo "argo-application-name=${{ env.argo-application-name }}" >> "$GITHUB_OUTPUT"
+      - id: step4
         run: echo "environment=${{ env.environment }}" >> "$GITHUB_OUTPUT"
 
   slack-start:
@@ -39,6 +44,7 @@ jobs:
     uses: team-caredoc/actions/.github/workflows/front-nextjs.yaml@main
     with:
       APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
+      ARGO_APPLICATION_NAME: ${{ needs.pre-build.outputs.argo-application-name }}
       TAG: ${{ github.ref_name }}
       ORG_ARGO_SERVER_URL: ${{ vars.ORG_DEV_ARGO_SERVER_URL }}
       ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
