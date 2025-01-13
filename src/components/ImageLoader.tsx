@@ -102,7 +102,7 @@ const ImageLoader = ({
       </picture>
     );
   }
-  if ((Array.isArray(src) && !Array.isArray(width)) || !Array.isArray(height)) {
+  if (Array.isArray(src) && (!Array.isArray(width) || !Array.isArray(height))) {
     throw new Error(
       "이미지를 반응형으로 사용하려면 width와 height props 도 같이 지정해주세요.",
     );
