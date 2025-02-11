@@ -68,5 +68,6 @@
     "node": ">=18",
     "yarn": "pnpm을 사용해주세요.",
     "npm": "pnpm을 사용해주세요."
-  }
+  },
+  "packageManager": "pnpm@10.3.0"
 }
