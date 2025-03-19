@@ -2,7 +2,7 @@ name: Build and Push to ECR (Prod)
 
 on:
   push:
-   tags:
+    tags:
       ## TODO CD에 맞게 수정
       - from-prd-*
 env:
@@ -37,7 +37,7 @@ jobs:
       APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
       ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
     secrets:
-      SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
+      ORG_SLACK_BOT_TOKEN: ${{ secrets.ORG_SLACK_BOT_TOKEN }}
 
   deploy:
     needs: pre-build
@@ -51,7 +51,6 @@ jobs:
     secrets:
       FRONT_ENV_BASE64: ${{ secrets.PROD_FRONT_ENV_BASE64 }}
       ORG_ACTION_PTA: ${{ secrets.ORG_ACTION_PTA }}
-      ORG_SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
       ORG_NPM_REGISTRY_TOKEN: ${{ secrets.ORG_NPM_REGISTRY_TOKEN }}
       ORG_AWS_REGION: ${{ secrets.ORG_PROD_AWS_REGION }}
       ORG_AWS_ACCOUNT_ID: ${{ secrets.ORG_PROD_AWS_ACCOUNT_ID }}
@@ -61,7 +60,7 @@ jobs:
       ORG_ARGO_PASSWORD: ${{ secrets.ORG_PROD_ARGO_PASSWORD }}
 
   deploy-done:
-    needs: [deploy,pre-build]
+    needs: [deploy,pre-build,slack-start]
     if: ${{ always() }}
     uses: team-caredoc/actions/.github/workflows/deploy-done.yaml@main
     with:
@@ -69,7 +68,6 @@ jobs:
       DEPLOY_RESULT: ${{ needs.deploy.result }}
       ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
       START_TIME: ${{ needs.pre-build.outputs.start-timestamp }}
+      SLACK_TS: ${{ needs.slack-start.outputs.ts }}
     secrets:
-      SLACK_WEBHOOK_URL: ${{ secrets.ORG_SLACK_WEBHOOK_URL }}
-
-
+      ORG_SLACK_BOT_TOKEN: ${{ secrets.ORG_SLACK_BOT_TOKEN }}
