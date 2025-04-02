@@ -41,9 +41,7 @@ export default tseslint.config(
       "unused-imports": unusedImports,
     },
     rules: {
-      "react/prop-types": 0,
-      "react/react-in-jsx-scope": 0,
-      "@typescript-eslint/no-explicit-any": ["warn"],
+      "@typescript-eslint/no-explicit-any": 0,
       "react/jsx-curly-brace-presence": [
         1,
         {
@@ -70,6 +68,7 @@ export default tseslint.config(
         },
       ],
       "unused-imports/no-unused-imports": "error",
+      "@typescript-eslint/no-unused-vars": "warn",
     },
   },
 );
