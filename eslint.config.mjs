@@ -18,7 +18,6 @@ export default tseslint.config(
   eslint.configs.recommended,
   react.configs.flat.recommended,
   tseslint.configs.recommended,
-  jsxA11y.flatConfigs.recommended,
   eslintPluginUnicorn.configs.recommended,
   eslintConfigPrettier,
   ...compat.config({
@@ -43,7 +42,6 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "jsx-a11y": jsxA11y,
       "unused-imports": unusedImports,
-      unicorn: eslintPluginUnicorn,
     },
 
     rules: {
