@@ -1,6 +1,7 @@
 import { metadata, Pretendard, viewport } from "./_functions";
 
 import "./globals.css";
+
 import { Providers } from "@/providers";
 
 export { viewport };

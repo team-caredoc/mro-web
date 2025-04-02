@@ -1,60 +1,48 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { FlatCompat } from "@eslint/eslintrc";
-import js from "@eslint/js";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import _import from "eslint-plugin-import";
-import prettier from "eslint-plugin-prettier";
+import eslint from "@eslint/js";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
+  // import.meta.dirname is available after Node.js v20.11.0
+  baseDirectory: import.meta.dirname,
 });
-
-export default [
-  ...compat.extends(
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:prettier/recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@next/next/recommended",
-    "plugin:react/jsx-runtime",
-    "next/core-web-vitals",
-    "next/typescript",
-    "prettier",
-  ),
+// files 옵션 제거 후 다시 실행
+export default tseslint.config(
+  eslint.configs.recommended,
+  tseslint.configs.recommended,
+  eslintConfigPrettier,
+  ...compat.config({
+    extends: ["next/core-web-vitals", "next/typescript", "prettier"],
+  }),
   {
+    files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        ...globals.serviceworker,
+        ...globals.browser,
+      },
+    },
     plugins: {
       react,
-      "@typescript-eslint": typescriptEslint,
-      prettier,
+      "react-hooks": reactHooks,
+      "jsx-a11y": jsxA11y,
       "unused-imports": unusedImports,
-      import: _import,
     },
-
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-
-      parser: tsParser,
-    },
-
-    settings: {
-      react: {
-        version: "detect",
-      },
-    },
-
     rules: {
+      "react/prop-types": 0,
+      "react/react-in-jsx-scope": 0,
       "@typescript-eslint/no-explicit-any": ["warn"],
       "react/jsx-curly-brace-presence": [
         1,
@@ -71,9 +59,6 @@ export default [
           allowTernary: true,
         },
       ],
-      "@typescript-eslint/no-unused-vars": ["warn"],
-      "no-unused-vars": "off",
-      "unused-imports/no-unused-imports": "error",
       "react/jsx-sort-props": [
         "error",
         {
@@ -84,15 +69,7 @@ export default [
           reservedFirst: true,
         },
       ],
-      "unused-imports/no-unused-vars": [
-        "warn",
-        {
-          vars: "all",
-          varsIgnorePattern: "^_",
-          args: "after-used",
-          argsIgnorePattern: "^_",
-        },
-      ],
+      "unused-imports/no-unused-imports": "error",
     },
   },
-];
+);

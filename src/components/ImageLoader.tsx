@@ -13,13 +13,15 @@ interface StaticImageData {
   src: string;
   height: number;
   width: number;
-  blurDataURL?: string;
   blurWidth?: number;
+  blurDataURL?: string;
   blurHeight?: number;
 }
+
 interface StaticRequire {
   default: StaticImageData;
 }
+
 type StaticImport = StaticRequire | StaticImageData;
 
 function cloudfrontLoader({ src, width }) {
