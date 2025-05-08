@@ -1,10 +1,8 @@
-import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
-import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 import tseslint from "typescript-eslint";
@@ -18,7 +16,6 @@ export default tseslint.config(
   eslint.configs.recommended,
   react.configs.flat.recommended,
   tseslint.configs.recommended,
-  eslintPluginUnicorn.configs.recommended,
   eslintConfigPrettier,
   ...compat.config({
     extends: ["next/core-web-vitals", "next/typescript", "prettier"],
@@ -45,20 +42,25 @@ export default tseslint.config(
     },
 
     rules: {
-      "@typescript-eslint/no-explicit-any": 0,
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       "react/jsx-curly-brace-presence": [
-        1,
+        "warn",
         {
           props: "never",
           children: "never",
         },
       ],
       "no-unused-expressions": "off",
-      "@typescript-eslint/no-unused-expressions": [
-        "error",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
         {
-          allowShortCircuit: true,
-          allowTernary: true,
+          vars: "all",
+          varsIgnorePattern: "^_",
+          args: "after-used",
+          argsIgnorePattern: "^_",
         },
       ],
       "react/jsx-sort-props": [
@@ -71,10 +73,7 @@ export default tseslint.config(
           reservedFirst: true,
         },
       ],
-      "unused-imports/no-unused-imports": "error",
-      "@typescript-eslint/no-unused-vars": "warn",
-      "react/no-unknown-property": ["error", { ignore: [] }],
-      "unicorn/consistent-function-scoping": "warn",
+      "react/no-unknown-property": ["error", { ignore: ["css"] }],
     },
   },
 );
