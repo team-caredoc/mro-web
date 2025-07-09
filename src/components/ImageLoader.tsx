@@ -1,13 +1,12 @@
 "use client";
 
 import Image, { getImageProps, ImageProps } from "next/image";
-import React from "react";
 
 // ******************* //
 // *** URL 확인 필요 ***//
 // ******************  //
-const DOMAIN = "image.caredoc.kr";
-const PATH = "franchise-web";
+const DOMAIN = "cache.caredoc.kr";
+const PATH = "";
 
 interface StaticImageData {
   src: string;
@@ -24,20 +23,35 @@ interface StaticRequire {
 
 type StaticImport = StaticRequire | StaticImageData;
 
+function buildOptimizedImageUrl(
+  src: string,
+  width: number,
+  quality: number = 80,
+): string {
+  const extensionMatch = src.match(/\.\w+$/);
+  console.log(width);
+  if (!extensionMatch) {
+    throw new Error("Invalid image filename format: " + src);
+  }
+
+  const extension = extensionMatch[0]; // 예: ".png"
+  const baseName = src.slice(0, -extension.length); // 예: "history_1_mobile"
+  const optimizedName = `${baseName}@(${`w${width}`}_fwebp_q${quality})${extension}`;
+  return `https://${DOMAIN}/${PATH}${optimizedName}`;
+}
+
 function cloudfrontLoader({ src, width }) {
   if (src.startsWith("http")) {
     const url = new URL(src);
-    url.searchParams.set("w", width.toString());
-    url.searchParams.set("f", "webp");
+
     return url.href;
   }
-  const url = new URL(`https://${DOMAIN}/${PATH}${src}`);
-  url.searchParams.set("f", "webp");
-  url.searchParams.set("w", width.toString());
-  return url.href;
+
+  return buildOptimizedImageUrl(src, width);
 }
 
 /*** @example
+ // @ref https://caredoc.atlassian.net/jira/software/c/projects/PCA/boards/161?selectedIssue=PCA-1412
  // 반응형이 필요한 경우 참고
  // https://nextjs.org/docs/app/api-reference/components/image#responsive-images
  <ImageLoader
@@ -60,14 +74,17 @@ const ImageLoader = ({
   height: number | `${number}` | number[];
   containerClassName?: string;
 }) => {
+  if (!PATH) {
+    throw new Error("PATH 를 지정해주세요");
+  }
   if (typeof src === "string") {
     return (
       <Image
         loader={cloudfrontLoader}
         src={src}
-        {...props}
         height={height as number | `${number}`}
         width={width as number | `${number}`}
+        {...props}
       />
     );
   }
