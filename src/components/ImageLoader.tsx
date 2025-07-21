@@ -37,7 +37,7 @@ function buildOptimizedImageUrl(
   const extension = extensionMatch[0]; // 예: ".png"
   const baseName = src.slice(0, -extension.length); // 예: "history_1_mobile"
   const optimizedName = `${baseName}@(${`w${width}`}_fwebp_q${quality})${extension}`;
-  return `https://${DOMAIN}/${PATH}${optimizedName}`;
+  return `https://${DOMAIN}${PATH}${optimizedName}`;
 }
 
 function cloudfrontLoader({ src, width }) {
