@@ -4,8 +4,7 @@ import "./globals.css";
 
 import { Providers } from "@/providers";
 
-export { viewport };
-export { metadata };
+export { metadata, viewport };
 
 export default function RootLayout({
   children,

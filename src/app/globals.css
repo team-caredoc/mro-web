@@ -1,8 +1,7 @@
-@import "tailwindcss";
-
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
-
 * {
+  font-family: Pretendard;
   -webkit-font-smoothing: antialiased;
-  font-family: var(--font-pretendard);
 }

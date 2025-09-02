@@ -80,11 +80,12 @@ const ImageLoader = ({
   if (typeof src === "string") {
     return (
       <Image
+        {...props}
+        alt={props.alt}
+        height={height as number | `${number}`}
         loader={cloudfrontLoader}
         src={src}
-        height={height as number | `${number}`}
         width={width as number | `${number}`}
-        {...props}
       />
     );
   }
@@ -117,7 +118,7 @@ const ImageLoader = ({
       <picture className={containerClassName}>
         <source media="(min-width: 1200px)" srcSet={pcSet} />
         <source srcSet={mobileSet} />
-        <img {...rest} />
+        <img {...rest} alt={props.alt} />
       </picture>
     );
   }

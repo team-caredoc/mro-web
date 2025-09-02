@@ -1,5 +1,5 @@
 "use client";
 
 export default function Home() {
-  return <div className="table text-2xl">hello world</div>;
+  return <div className="single-12-400">hello world</div>;
 }

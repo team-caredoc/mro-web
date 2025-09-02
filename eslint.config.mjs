@@ -1,10 +1,10 @@
+import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
-import tailwindcss from "eslint-plugin-tailwindcss";
 import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 import tseslint from "typescript-eslint";
@@ -18,7 +18,6 @@ export default tseslint.config(
   eslint.configs.recommended,
   react.configs.flat.recommended,
   tseslint.configs.recommended,
-  tailwindcss.configs.recommended,
   ...pluginQuery.configs["flat/recommended"],
   eslintConfigPrettier,
   ...compat.config({
@@ -40,12 +39,23 @@ export default tseslint.config(
     },
     plugins: {
       react,
+
       "react-hooks": reactHooks,
       "jsx-a11y": jsxA11y,
       "unused-imports": unusedImports,
     },
-
     rules: {
+      "react/jsx-sort-props": [
+        "error",
+        {
+          ignoreCase: true, // 대소문자 무시
+          callbacksLast: true, // 콜백 props 마지막으로
+          shorthandFirst: true, // shorthand props 먼저
+          noSortAlphabetically: false, // 알파벳 순서 정렬
+          reservedFirst: true, // key/ref 같은 예약 props 먼저
+        },
+      ],
+      "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "react/jsx-curly-brace-presence": [
@@ -55,6 +65,7 @@ export default tseslint.config(
           children: "never",
         },
       ],
+      "@typescript-eslint/ban-ts-comment": "off",
       "no-unused-expressions": "off",
       "@typescript-eslint/no-unused-expressions": "off",
       "unused-imports/no-unused-imports": "error",
@@ -67,17 +78,9 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
         },
       ],
-      "react/jsx-sort-props": [
-        "error",
-        {
-          ignoreCase: true,
-          callbacksLast: true,
-          shorthandFirst: true,
-          noSortAlphabetically: false,
-          reservedFirst: true,
-        },
-      ],
+
       "react/no-unknown-property": ["error", { ignore: ["css"] }],
+      "react/no-unescaped-entities": "off",
     },
   },
 );
