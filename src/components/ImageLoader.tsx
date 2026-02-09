@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { cn } from "@/libs/utils";
 
-const SERVICE_PATH = "";
+const SERVICE_PATH = "mro-web";
 const ERROR_SRC = "";
 interface StaticImageData {
   src: string;
@@ -200,7 +200,7 @@ const ImageLoader = ({
       height: height[0],
     });
     return (
-      <picture>
+      <picture className={cn(className)}>
         <source media="(min-width: 1200px)" srcSet={pcSet} />
         <source srcSet={mobileSet} />
         <img {...rest} alt={alt} className={className} />

@@ -5,3 +5,43 @@
   font-family: Pretendard;
   -webkit-font-smoothing: antialiased;
 }
+.line-break {
+  @apply desktop:hidden flex;
+}
+.pc-line-break {
+  @apply desktop:flex hidden;
+}
+
+@layer components {
+  .ripple {
+    outline: none; /* outline-none */
+    transition: all 200ms ease-out; /* transition-all duration-300 ease-out */
+
+    -webkit-tap-highlight-color: transparent; /* iOS 터치 하이라이트 제거 */
+    &:active {
+      transform: scale(0.97) !important; /* active:!scale-95 */
+      filter: brightness(0.8);
+    }
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ripple:hover:not(:active) {
+    transform: scale(1.01);
+    filter: brightness(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ripple {
+    transition: none;
+  }
+
+  .ripple:hover {
+    transform: scale(1);
+  }
+
+  .ripple:active {
+    transform: scale(1);
+  }
+}

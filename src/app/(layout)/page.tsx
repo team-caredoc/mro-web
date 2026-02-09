@@ -1,5 +1,7 @@
-"use client";
+import LoginForm from "./_containers/LoginForm";
 
-export default function Home() {
-  return <div className="single-12-400">hello world</div>;
+function MainPage() {
+  return <LoginForm />;
 }
+
+export default MainPage;
