@@ -26,8 +26,8 @@ function joinUrl(...parts: Array<string | undefined | null>): string {
  */
 async function main() {
   try {
-    const sitemaps = await findSitemapFiles(APP_DIR);
-    const SITEMAP_INDEX_PATH = path.join(ROOT_DIR, "public", "/sitemap.xml");
+    const sitemaps = await findSitemapFolders(APP_DIR);
+    const SITEMAP_INDEX_PATH = path.join(ROOT_DIR, "public", "sitemap.xml");
 
     const createSitemap = (url: string) => /* XML */ `  <sitemap>
     <loc>${url}</loc>
@@ -40,8 +40,8 @@ async function main() {
 ${urls.map(createSitemap).join("\n")}
 </sitemapindex>`;
 
+    // 중복 제거 및 정렬
     const uniqueSorted = Array.from(new Set(sitemaps)).sort();
-
     const xml = createSitemapIndex(uniqueSorted);
     await fs.mkdir(path.dirname(SITEMAP_INDEX_PATH), { recursive: true });
     await fs.writeFile(SITEMAP_INDEX_PATH, xml.trim() + "\n");
@@ -55,10 +55,12 @@ ${urls.map(createSitemap).join("\n")}
 }
 
 /**
- * 🔎 Recursively finds 'sitemap.ts' files and extracts sitemap URLs.
+ * 🔎 sitemap.xml 폴더명을 찾아서 해당 경로 기준으로 sitemap URL을 생성
+ *    - dynamic-sitemap-example/sitemap.xml/sitemap.xml 처럼 중복되지 않게
+ *    - 항상 https://www.caredoc.kr 도메인으로 시작
  */
-async function findSitemapFiles(dir: string): Promise<string[]> {
-  let sitemaps: string[] = ["https://www.caredoc.kr/sitemap.xml"];
+async function findSitemapFolders(dir: string): Promise<string[]> {
+  const sitemaps: string[] = [];
   try {
     const files = await fs.readdir(dir, { withFileTypes: true });
     for (const file of files) {
@@ -66,32 +68,34 @@ async function findSitemapFiles(dir: string): Promise<string[]> {
 
       if (file.isDirectory()) {
         if (!file.name.startsWith("_")) {
-          const nestedSitemaps = await findSitemapFiles(fullPath);
-          sitemaps = sitemaps.concat(nestedSitemaps);
-        }
-      } else if (file.isFile() && file.name === "sitemap.ts") {
-        const relativePath = path
-          .relative(APP_DIR, dir)
-          .split(path.sep)
-          .filter((segment) => !/^[(\[@]/.test(segment)) // Next.js 특수폴더 제외
-          .join("/");
+          // 폴더명이 sitemap.xml.gz 인 경우
+          if (file.name === "sitemap.xml.gz") {
+            const relativePathArr = path
+              .relative(APP_DIR, fullPath)
+              .split(path.sep)
+              .filter((segment) => !/^[([@]/.test(segment)); // Next.js 특수폴더 제외
 
-        const sitemapFile = await import(fullPath);
+            // 이미 마지막이 sitemap.xml이면 중복 방지
+            let urlPath = relativePathArr.join("/");
+            if (!urlPath.endsWith("sitemap.xml.gz")) {
+              urlPath = urlPath + "/sitemap.xml.gz";
+            } else {
+              // 이미 sitemap.xml로 끝나면 그대로
+            }
 
-        if (typeof sitemapFile.generateSitemaps === "function") {
-          const result = await sitemapFile.generateSitemaps();
-          result.forEach((item: { id: number }) => {
-            sitemaps.push(
-              joinUrl(SITE_URL, relativePath, "sitemap", `${item.id}.xml`),
-            );
-          });
-        } else {
-          sitemaps.push(joinUrl(SITE_URL, relativePath, "sitemap.xml"));
+            // 항상 도메인 붙이기
+            const url = joinUrl(SITE_URL, urlPath);
+            sitemaps.push(url);
+          } else {
+            // 재귀적으로 하위 폴더 탐색
+            const nestedSitemaps = await findSitemapFolders(fullPath);
+            sitemaps.push(...nestedSitemaps);
+          }
         }
       }
     }
   } catch (error) {
-    console.error("❌ Error finding sitemaps:", error);
+    console.error("❌ Error finding sitemap folders:", error);
   }
   return sitemaps;
 }

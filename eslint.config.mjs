@@ -1,63 +1,70 @@
-import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
+import nextPlugin from "@next/eslint-plugin-next";
 import pluginQuery from "@tanstack/eslint-plugin-query";
-import eslintConfigPrettier from "eslint-config-prettier/flat";
-import jsxA11y from "eslint-plugin-jsx-a11y";
-import react from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
+import prettierConfig from "eslint-config-prettier";
+import reactPlugin from "eslint-plugin-react";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const compat = new FlatCompat({
-  // import.meta.dirname is available after Node.js v20.11.0
-  baseDirectory: import.meta.dirname,
-});
-// files 옵션 제거 후 다시 실행
 export default tseslint.config(
-  eslint.configs.recommended,
-  react.configs.flat.recommended,
-  tseslint.configs.recommended,
-  ...pluginQuery.configs["flat/recommended"],
-  eslintConfigPrettier,
-  ...compat.config({
-    extends: ["next/core-web-vitals", "next/typescript", "prettier"],
-  }),
   {
-    files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
+    ignores: [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/dist/**",
+      "**/.pnpm-store/**",
+      "**/src/libs/api/react-query.generated/**",
+      "**/src/libs/api/swagger.api.ts",
+    ],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  ...pluginQuery.configs["flat/recommended"],
+  {
+    files: ["**/*.{js,mjs,cjs,jsx,ts,tsx}"],
     languageOptions: {
+      parser: tseslint.parser,
       parserOptions: {
-        projectService: true,
+        ecmaVersion: "latest",
+        sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
       },
       globals: {
-        ...globals.serviceworker,
         ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
       },
     },
     plugins: {
-      react,
-
-      "react-hooks": reactHooks,
-      "jsx-a11y": jsxA11y,
+      react: reactPlugin,
+      "react-hooks": reactHooksPlugin,
+      "@next/next": nextPlugin,
       "unused-imports": unusedImports,
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     rules: {
+      // React rules
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
       "react/jsx-sort-props": [
         "error",
         {
-          ignoreCase: true, // 대소문자 무시
-          callbacksLast: true, // 콜백 props 마지막으로
-          shorthandFirst: true, // shorthand props 먼저
-          noSortAlphabetically: false, // 알파벳 순서 정렬
-          reservedFirst: true, // key/ref 같은 예약 props 먼저
+          ignoreCase: true,
+          callbacksLast: true,
+          shorthandFirst: true,
+          noSortAlphabetically: false,
+          reservedFirst: true,
         },
       ],
-      "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
       "react/jsx-curly-brace-presence": [
         "warn",
         {
@@ -65,9 +72,28 @@ export default tseslint.config(
           children: "never",
         },
       ],
+      "react/no-unknown-property": ["error", { ignore: ["css"] }],
+      "react/no-unescaped-entities": "off",
+
+      // React Hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+
+      // Next.js rules
+      "@next/next/no-html-link-for-pages": "error",
+      "@next/next/no-img-element": "warn",
+
+      // TypeScript rules
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/ban-ts-comment": "off",
-      "no-unused-expressions": "off",
       "@typescript-eslint/no-unused-expressions": "off",
+
+      // General rules
+      "no-unused-expressions": "off",
+
+      // Unused imports
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",
@@ -78,9 +104,7 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
         },
       ],
-
-      "react/no-unknown-property": ["error", { ignore: ["css"] }],
-      "react/no-unescaped-entities": "off",
     },
   },
+  prettierConfig,
 );

@@ -1,7 +1,10 @@
 /* scripts/generate-react-query.ts
  * Api.ts(swagger-typescript-api 출력물)를 파싱해
- * src/libs/api/react-query.generated/<group>/{queries,mutations,index}.ts 와
- * src/libs/api/index.ts(루트 aggregator)를 생성합니다.
+ * src/lib/api/react-query.generated/<group>/{queries,mutations,index}.ts 와
+ * src/lib/api/react-query.generated/index.ts(루트 aggregator)를 생성합니다.
+ *
+ * ⚠️ 주의: 이 스크립트는 기존 src/lib/api/index.ts를 덮어쓰지 않습니다.
+ *          자동 생성된 API는 react-query.generated/index.ts에 저장됩니다.
  *
  * 규칙
  *  - 그룹: 경로에서 vN 다음의 첫 정적 세그먼트(예: /v2/caregiving-applyment/... → caregiving-applyment)
@@ -26,14 +29,17 @@ import {
 } from "ts-morph";
 
 /** ✅ Api 클래스가 들어있는 파일 경로 (너의 기준 경로) */
-const API_FILE = resolve(process.cwd(), "src/libs/api/swagger.api.ts");
+const API_FILE = resolve(process.cwd(), "src/lib/api/swagger.api.ts");
 
 /** 출력 루트 및 루트 aggregator 경로 */
 const OUT_BASE_DIR = resolve(
   process.cwd(),
-  "src/libs/api/react-query.generated",
+  "src/lib/api/react-query.generated",
 );
-const ROOT_API_INDEX = resolve(process.cwd(), "src/libs/api/index.ts");
+const GENERATED_INDEX = resolve(
+  process.cwd(),
+  "src/lib/api/react-query.generated/index.ts",
+);
 
 const MUT_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const isMutation = (m: string) => MUT_METHODS.has(m.toUpperCase());
@@ -62,7 +68,7 @@ function runEslintCLI() {
   // 예: pnpm eslint --fix src/libs/api/react-query.generated src/libs/api/index.ts
   const cmd =
     process.env.ESLINT_CMD ??
-    "pnpm eslint --fix src/libs/api/react-query.generated src/libs/api/index.ts";
+    "pnpm eslint src/lib/api/react-query.generated --fix --quiet";
   try {
     execSync(cmd, { stdio: "inherit" });
   } catch (e) {
@@ -185,7 +191,7 @@ function hasPaginationKeys(
 /* ---------- 타입 유틸: 배열 정규화 + 외부 타입 자격 부여 ---------- */
 
 /** swagger.api 에서 온 타입이면 `Types.Xxx` 로 표기하기 위한 시도 */
-function qualifyTypeForEmit(t: Type, at: Node): string | null {
+function qualifyTypeForEmit(t: Type, _at: Node): string | null {
   const sym = t.getSymbol();
   if (!sym) return null;
   const fq = (sym as any).getFullyQualifiedName?.();
@@ -237,6 +243,7 @@ function expandTypePropertiesToObjectLiteral(
   t: Type,
   atNode: Node,
   qualify: boolean,
+  visited: Set<string> = new Set(),
 ): string | null {
   if (
     t.isArray() ||
@@ -249,21 +256,19 @@ function expandTypePropertiesToObjectLiteral(
   ) {
     return null;
   }
+
+  // 순환 참조 방지
+  const typeKey = t.getText(atNode.getSourceFile());
+  if (visited.has(typeKey)) {
+    return null;
+  }
+  visited.add(typeKey);
+
   const props = t.getApparentProperties();
   if (!props.length) return null;
 
-  const lines: string[] = [];
-  for (const sym of props) {
-    const name = sym.getName();
-    // @ts-ignore
-    const vd = sym.getValueDeclaration?.();
-    // @ts-ignore
-    const isOptional = !!vd?.hasQuestionToken?.();
-    const pt = sym.getTypeAtLocation(atNode);
-    const ptText = printableType(pt, atNode, qualify);
-    lines.push(`  ${name}${isOptional ? "?:" : ":"} ${ptText};`);
-  }
-  return `{\n${lines.join("\n")}\n}`;
+  // 복잡한 타입 전개는 피하고 단순 타입만 처리
+  return null;
 }
 
 /* ---------- Hover 친화 타입 전개 (쿼리/바디 별로 정책 분리) ---------- */
@@ -304,6 +309,43 @@ function getBodyShapeForInline(
   return { inline: null, raw: normalized, optional };
 }
 
+function getResponseTypeName(genName: string): string {
+  return `I${toPascal(genName)}Response`;
+}
+
+function getResponseTypeDefinition(
+  fn: ArrowFunction,
+  genName: string,
+): string | null {
+  // this.request<...> 형태에서 제네릭 타입 추출
+  const callExpressions = fn.getDescendantsOfKind(SyntaxKind.CallExpression);
+  for (const call of callExpressions) {
+    const expression = call.getExpression();
+    if (expression.getText().includes("this.request")) {
+      const typeArgs = call.getTypeArguments();
+      if (typeArgs.length > 0) {
+        const firstTypeArg = typeArgs[0];
+        const type = firstTypeArg.getType();
+
+        // Types. 접두사를 사용하여 타입 정의
+        const qualified = qualifyTypeForEmit(type, firstTypeArg);
+        if (qualified && qualified.startsWith("Types.")) {
+          return `export type ${getResponseTypeName(genName)} = ${qualified};`;
+        }
+
+        // fallback: 원본 타입 사용
+        const typeText = firstTypeArg.getText().replace(/globalThis\./g, "");
+        return `export type ${getResponseTypeName(genName)} = ${typeText};`;
+      }
+    }
+  }
+  return null;
+}
+
+function getReturnType(fn: ArrowFunction, genName: string): string {
+  return getResponseTypeName(genName);
+}
+
 function getParamTypeText(fn: ArrowFunction, idx: number): string {
   const p = fn.getParameters()[idx];
   if (!p) return "any";
@@ -326,6 +368,11 @@ function asNonEmptyObjType(typeText: string): string {
   const t = typeText.replace(/\s/g, "");
   if (t === "{}" || t === "{;}") return "Record<string, never>";
   return typeText;
+}
+
+function hasNoParams(paramsBlock: string): boolean {
+  const t = paramsBlock.replace(/\s/g, "");
+  return t === "{}" || t === "{;}" || t === "Record<string,never>";
 }
 async function formatTS(code: string) {
   const cfg = await prettier.resolveConfig(process.cwd());
@@ -479,19 +526,33 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
       L.push(
         [
           `/* AUTO-GENERATED: ${group}/queries.ts */`,
-          `import { fetcher } from "@/libs/fetcher";`,
+          `import type * as Types from "@/lib/api/swagger.api";`,
+          ``,
+          `import { fetcher } from "@/lib/fetcher";`,
+          `import { getNextPageParam } from "@/lib/react-query";`,
           ``,
           `/**`,
           ` * 이 파일은 GET 엔드포인트만 포함합니다. ({ params })로 호출합니다.`,
           ` * - params: path 변수 + query 변수(합쳐서)`,
           ` * - Hover 친화: params를 실제 필드 타입으로 전개`,
           ` * - Init 타입 이름: I<Get...>Init`,
+          ` * - Response 타입 이름: I<Get...>Response`,
           ` * - 페이지네이션(GET + page/size): queryFn({ pageParam = '1' }) 사용`,
           ` */`,
           ``,
-          `// ===== Init types (per route) =====`,
+          `// ===== Response types (per route) =====`,
         ].join("\n"),
       );
+
+      // Response types 생성
+      queries.forEach((r) => {
+        const responseTypeDef = getResponseTypeDefinition(r.fnNode, r.genName);
+        if (responseTypeDef) {
+          L.push(responseTypeDef);
+        }
+      });
+
+      L.push(`\n// ===== Init types (per route) =====`);
 
       queries.forEach((r) => {
         const initName = getInitTypeName(r.genName);
@@ -516,13 +577,22 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           paramsBlock = `${paramsBlock} & ${queryRaw}`;
         }
         paramsBlock = asNonEmptyObjType(paramsBlock);
-        L.push(
-          [
-            `export type ${initName} = {`,
-            `  params: ${paramsBlock};`,
-            `};`,
-          ].join("\n"),
-        );
+
+        // 파라미터가 없는 경우 Init 타입을 다르게 생성
+        const isEmptyParams = hasNoParams(paramsBlock);
+
+        if (isEmptyParams) {
+          // 파라미터가 없는 경우 Init 타입을 생성하지 않음 (void 타입으로 처리)
+          L.push([`export type ${initName} = void;`].join("\n"));
+        } else {
+          L.push(
+            [
+              `export type ${initName} = {`,
+              `  params: ${paramsBlock};`,
+              `};`,
+            ].join("\n"),
+          );
+        }
       });
 
       L.push(utilQS);
@@ -530,15 +600,69 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
       L.push(`export const queryKeys = {`);
       queries.forEach((r) => {
         const initName = getInitTypeName(r.genName);
-        L.push(
-          `  ${r.genName}: (init: ${initName}) => ['${r.genName}', init],`,
+        const pathParamFields = r.pathVars
+          .map((v) => getPathParamField(r.fnNode, r.paramNames, v))
+          .join("\n");
+        const { inline: queryInline, raw: queryRaw } = getQueryShapeForInline(
+          r.fnNode,
+          r.idxQuery,
         );
+
+        let paramsBlock = `{\n${pathParamFields}\n}`;
+        if (queryInline) {
+          const merged = [
+            pathParamFields && pathParamFields.trim() ? pathParamFields : "",
+            queryInline.slice(1, -1).trim(),
+          ]
+            .filter(Boolean)
+            .join("\n");
+          paramsBlock = `{\n${merged}\n}`;
+        } else if (queryRaw) {
+          paramsBlock = `${paramsBlock} & ${queryRaw}`;
+        }
+        paramsBlock = asNonEmptyObjType(paramsBlock);
+
+        const isEmptyParams = hasNoParams(paramsBlock);
+
+        if (isEmptyParams) {
+          L.push(`  ${r.genName}: () => ['${r.genName}'],`);
+        } else {
+          L.push(
+            `  ${r.genName}: (init: ${initName}) => ['${r.genName}', init],`,
+          );
+        }
       });
       L.push(`};`);
 
       L.push(`\nexport const queryFns = {`);
       queries.forEach((r) => {
         const initName = getInitTypeName(r.genName);
+        const returnType = getReturnType(r.fnNode, r.genName);
+
+        // 파라미터가 있는지 확인
+        const pathParamFields = r.pathVars
+          .map((v) => getPathParamField(r.fnNode, r.paramNames, v))
+          .join("\n");
+        const { inline: queryInline, raw: queryRaw } = getQueryShapeForInline(
+          r.fnNode,
+          r.idxQuery,
+        );
+
+        let paramsBlock = `{\n${pathParamFields}\n}`;
+        if (queryInline) {
+          const merged = [
+            pathParamFields && pathParamFields.trim() ? pathParamFields : "",
+            queryInline.slice(1, -1).trim(),
+          ]
+            .filter(Boolean)
+            .join("\n");
+          paramsBlock = `{\n${merged}\n}`;
+        } else if (queryRaw) {
+          paramsBlock = `${paramsBlock} & ${queryRaw}`;
+        }
+        paramsBlock = asNonEmptyObjType(paramsBlock);
+        const isEmptyParams = hasNoParams(paramsBlock);
+
         let pathCode = r.pathExpr;
         r.pathVars.forEach((v) => {
           const re = new RegExp(String.raw`\$\{${v}\}`, "g");
@@ -549,61 +673,221 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           : "";
 
         if (r.paginated) {
-          L.push(
-            [
-              `  ${r.genName}: (init: ${initName}) => {`,
-              `    const { params } = init as any;`,
-              `    const __build = (page: string | number) => {`,
-              `      const merged = { ...params, page: params?.page ?? String(page) };`,
-              `      const __url = ${pathCode.replace(/params\./g, "merged.")} + __qsFromParams(merged as any, ${JSON.stringify(
-                r.pathVars,
-              )});`,
-              `      const __opt: any = { method: 'GET' };`,
-              `      return fetcher(__url, __opt);`,
-              `    };`,
-              `    return { __call: __build };`,
-              `  },`,
-            ].join("\n"),
-          );
+          if (isEmptyParams) {
+            L.push(
+              [
+                `  ${r.genName}: (): { __call: (page?: string | number) => Promise<${returnType}> } => {`,
+                `    const __build = (pageParam?: string | number): Promise<${returnType}> => {`,
+                `      const isInfiniteQuery = Boolean(pageParam);`,
+                `      const merged = {`,
+                `        page: isInfiniteQuery ? String(pageParam) : undefined,`,
+                `      };`,
+                `      const __url = ${pathCode.replace(/params\./g, "merged.")} + __qsFromParams(merged as any, ${JSON.stringify(
+                  r.pathVars,
+                )});`,
+                `      const __opt: any = { method: 'GET' };`,
+                `      return fetcher(__url, __opt);`,
+                `    };`,
+                `    return { __call: __build };`,
+                `  },`,
+              ].join("\n"),
+            );
+          } else {
+            L.push(
+              [
+                `  ${r.genName}: (init: ${initName}): { __call: (page?: string | number) => Promise<${returnType}> } => {`,
+                `    const { params } = init as any;`,
+                `    const __build = (pageParam?: string | number): Promise<${returnType}> => {`,
+                `      const isInfiniteQuery = Boolean(pageParam);`,
+                `      const merged = {`,
+                `        ...params,`,
+                `        page: isInfiniteQuery ? String(pageParam) : params?.page,`,
+                `      };`,
+                `      const __url = ${pathCode.replace(/params\./g, "merged.")} + __qsFromParams(merged as any, ${JSON.stringify(
+                  r.pathVars,
+                )});`,
+                `      const __opt: any = { method: 'GET' };`,
+                `      return fetcher(__url, __opt);`,
+                `    };`,
+                `    return { __call: __build };`,
+                `  },`,
+              ].join("\n"),
+            );
+          }
         } else {
-          L.push(
-            [
-              `  ${r.genName}: (init: ${initName}) => {`,
-              `    const { params } = init as any;`,
-              `    const __url = ${pathCode}${qsCode};`,
-              `    const __opt: any = { method: 'GET' };`,
-              `    return fetcher(__url, __opt);`,
-              `  },`,
-            ].join("\n"),
-          );
+          if (isEmptyParams) {
+            L.push(
+              [
+                `  ${r.genName}: (): Promise<${returnType}> => {`,
+                `    const __url = ${pathCode};`,
+                `    const __opt: any = { method: 'GET' };`,
+                `    return fetcher(__url, __opt);`,
+                `  },`,
+              ].join("\n"),
+            );
+          } else {
+            L.push(
+              [
+                `  ${r.genName}: (init: ${initName}): Promise<${returnType}> => {`,
+                `    const { params } = init as any;`,
+                `    const __url = ${pathCode}${qsCode};`,
+                `    const __opt: any = { method: 'GET' };`,
+                `    return fetcher(__url, __opt);`,
+                `  },`,
+              ].join("\n"),
+            );
+          }
         }
       });
       L.push(`};`);
 
+      // 공통 쿼리 함수 생성기 추가 (페이지네이션이 있는 쿼리에만)
+      const paginatedQueries = queries.filter((r) => r.paginated);
+      if (paginatedQueries.length > 0) {
+        L.push(`\n// 공통 쿼리 함수 생성기`);
+        paginatedQueries.forEach((r) => {
+          const initName = getInitTypeName(r.genName);
+          const functionName = `createBaseQuery${toPascal(r.genName)}`;
+
+          // 파라미터가 있는지 확인
+          const pathParamFields = r.pathVars
+            .map((v) => getPathParamField(r.fnNode, r.paramNames, v))
+            .join("\n");
+          const { inline: queryInline, raw: queryRaw } = getQueryShapeForInline(
+            r.fnNode,
+            r.idxQuery,
+          );
+
+          let paramsBlock = `{\n${pathParamFields}\n}`;
+          if (queryInline) {
+            const merged = [
+              pathParamFields && pathParamFields.trim() ? pathParamFields : "",
+              queryInline.slice(1, -1).trim(),
+            ]
+              .filter(Boolean)
+              .join("\n");
+            paramsBlock = `{\n${merged}\n}`;
+          } else if (queryRaw) {
+            paramsBlock = `${paramsBlock} & ${queryRaw}`;
+          }
+          paramsBlock = asNonEmptyObjType(paramsBlock);
+          const isEmptyParams = hasNoParams(paramsBlock);
+
+          if (isEmptyParams) {
+            L.push(
+              [
+                `const ${functionName} = () => ({`,
+                `  queryKey: queryKeys.${r.genName}(),`,
+                `  queryFn: (_params: any) => {`,
+                `    const isInfiniteQuery = Boolean(_params?.pageParam);`,
+                `    const fn = queryFns.${r.genName}();`,
+                ``,
+                `    if (isInfiniteQuery) {`,
+                `      return fn.__call(_params.pageParam);`,
+                `    }`,
+                `    return fn.__call();`,
+                `  },`,
+                `});`,
+              ].join("\n"),
+            );
+          } else {
+            L.push(
+              [
+                `const ${functionName} = (init: ${initName}) => ({`,
+                `  queryKey: queryKeys.${r.genName}(init),`,
+                `  queryFn: (_params: any) => {`,
+                `    const isInfiniteQuery = Boolean(_params?.pageParam);`,
+                `    const fn = queryFns.${r.genName}(init);`,
+                ``,
+                `    if (isInfiniteQuery) {`,
+                `      return fn.__call(_params.pageParam);`,
+                `    }`,
+                `    return fn.__call();`,
+                `  },`,
+                `});`,
+              ].join("\n"),
+            );
+          }
+        });
+      }
+
       L.push(`\nexport const queries = {`);
       queries.forEach((r) => {
         const initName = getInitTypeName(r.genName);
+
+        // 파라미터가 있는지 확인
+        const pathParamFields = r.pathVars
+          .map((v) => getPathParamField(r.fnNode, r.paramNames, v))
+          .join("\n");
+        const { inline: queryInline, raw: queryRaw } = getQueryShapeForInline(
+          r.fnNode,
+          r.idxQuery,
+        );
+
+        let paramsBlock = `{\n${pathParamFields}\n}`;
+        if (queryInline) {
+          const merged = [
+            pathParamFields && pathParamFields.trim() ? pathParamFields : "",
+            queryInline.slice(1, -1).trim(),
+          ]
+            .filter(Boolean)
+            .join("\n");
+          paramsBlock = `{\n${merged}\n}`;
+        } else if (queryRaw) {
+          paramsBlock = `${paramsBlock} & ${queryRaw}`;
+        }
+        paramsBlock = asNonEmptyObjType(paramsBlock);
+        const isEmptyParams = hasNoParams(paramsBlock);
+
         if (r.paginated) {
-          L.push(
-            [
-              `  ${r.genName}: (init: ${initName}) => ({`,
-              `    queryKey: queryKeys.${r.genName}(init),`,
-              `    queryFn: ({ pageParam = '1' }) => {`,
-              `      const fn = queryFns.${r.genName}(init) as any;`,
-              `      return fn.__call(pageParam);`,
-              `    },`,
-              `  }),`,
-            ].join("\n"),
-          );
+          const functionName = `createBaseQuery${toPascal(r.genName)}`;
+          if (isEmptyParams) {
+            L.push(
+              [
+                `  ${r.genName}: () =>`,
+                `    ${functionName}(),`,
+                ``,
+                `  ${r.genName}Infinite: () => ({`,
+                `    ...${functionName}(),`,
+                `    initialPageParam: 1,`,
+                `    getNextPageParam,`,
+                `  }),`,
+              ].join("\n"),
+            );
+          } else {
+            L.push(
+              [
+                `  ${r.genName}: (init: ${initName}) =>`,
+                `    ${functionName}(init),`,
+                ``,
+                `  ${r.genName}Infinite: (init: ${initName}) => ({`,
+                `    ...${functionName}(init),`,
+                `    initialPageParam: 1,`,
+                `    getNextPageParam,`,
+                `  }),`,
+              ].join("\n"),
+            );
+          }
         } else {
-          L.push(
-            [
-              `  ${r.genName}: (init: ${initName}) => ({`,
-              `    queryKey: queryKeys.${r.genName}(init),`,
-              `    queryFn: () => queryFns.${r.genName}(init),`,
-              `  }),`,
-            ].join("\n"),
-          );
+          if (isEmptyParams) {
+            L.push(
+              [
+                `  ${r.genName}: () => ({`,
+                `    queryKey: queryKeys.${r.genName}(),`,
+                `    queryFn: () => queryFns.${r.genName}(),`,
+                `  }),`,
+              ].join("\n"),
+            );
+          } else {
+            L.push(
+              [
+                `  ${r.genName}: (init: ${initName}) => ({`,
+                `    queryKey: queryKeys.${r.genName}(init),`,
+                `    queryFn: () => queryFns.${r.genName}(init),`,
+                `  }),`,
+              ].join("\n"),
+            );
+          }
         }
       });
       L.push(`};`);
@@ -618,8 +902,8 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
       L.push(
         [
           `/* AUTO-GENERATED: ${group}/mutations.ts */`,
-          `import { fetcher } from "@/libs/fetcher";`,
-          `import type * as Types from "@/libs/api/swagger.api";`,
+          `import { fetcher } from "@/lib/fetcher";`,
+          `import type * as Types from "@/lib/api/swagger.api";`,
           ``,
           `/**`,
           ` * 이 파일은 POST/PUT/PATCH/DELETE 엔드포인트만 포함합니다. ({ params, body })로 호출합니다.`,
@@ -627,11 +911,22 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           ` * - body  : 있을 때만 사용`,
           ` * - Hover 친화: params/body를 실제 필드 타입으로 전개`,
           ` * - Init 타입 이름: I<Post|Put|Patch|Delete...>Init`,
+          ` * - Response 타입 이름: I<Post|Put|Patch|Delete...>Response`,
           ` */`,
           ``,
-          `// ===== Init types (per route) =====`,
+          `// ===== Response types (per route) =====`,
         ].join("\n"),
       );
+
+      // Response types 생성
+      mutations.forEach((r) => {
+        const responseTypeDef = getResponseTypeDefinition(r.fnNode, r.genName);
+        if (responseTypeDef) {
+          L.push(responseTypeDef);
+        }
+      });
+
+      L.push(`\n// ===== Init types (per route) =====`);
 
       mutations.forEach((r) => {
         const initName = getInitTypeName(r.genName);
@@ -656,6 +951,8 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           paramsBlock = `${paramsBlock} & ${queryRaw}`;
         }
         paramsBlock = asNonEmptyObjType(paramsBlock);
+        const isEmptyParams = hasNoParams(paramsBlock);
+
         let bodyLine = "";
         if (r.idxBody !== null) {
           const {
@@ -673,13 +970,24 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           }
         }
 
-        L.push(
-          [
-            `export type ${initName} = {`,
-            `  params: ${paramsBlock};${bodyLine}`,
-            `};`,
-          ].join("\n"),
-        );
+        // params가 없고 body도 없으면 void
+        if (isEmptyParams && !bodyLine) {
+          L.push(`export type ${initName} = void;`);
+        }
+        // params가 없고 body만 있으면 { body: ... }
+        else if (isEmptyParams && bodyLine) {
+          L.push([`export type ${initName} = {${bodyLine}`, `};`].join("\n"));
+        }
+        // params가 있으면 기존 로직대로
+        else {
+          L.push(
+            [
+              `export type ${initName} = {`,
+              `  params: ${paramsBlock};${bodyLine}`,
+              `};`,
+            ].join("\n"),
+          );
+        }
       });
 
       const utilQSLocal = utilQS;
@@ -695,6 +1003,32 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
       L.push(`\nexport const mutationFns = {`);
       mutations.forEach((r) => {
         const initName = getInitTypeName(r.genName);
+        const returnType = getReturnType(r.fnNode, r.genName);
+
+        // params가 필요한지 확인
+        const pathParamFields = r.pathVars
+          .map((v) => getPathParamField(r.fnNode, r.paramNames, v))
+          .join("\n");
+        const { inline: queryInline, raw: queryRaw } = getQueryShapeForInline(
+          r.fnNode,
+          r.idxQuery,
+        );
+
+        let paramsBlock = `{\n${pathParamFields}\n}`;
+        if (queryInline) {
+          const merged = [
+            pathParamFields && pathParamFields.trim() ? pathParamFields : "",
+            queryInline.slice(1, -1).trim(),
+          ]
+            .filter(Boolean)
+            .join("\n");
+          paramsBlock = `{\n${merged}\n}`;
+        } else if (queryRaw) {
+          paramsBlock = `${paramsBlock} & ${queryRaw}`;
+        }
+        paramsBlock = asNonEmptyObjType(paramsBlock);
+        const isEmptyParams = hasNoParams(paramsBlock);
+
         let pathCode = r.pathExpr;
         r.pathVars.forEach((v) => {
           const re = new RegExp(String.raw`\$\{${v}\}`, "g");
@@ -705,27 +1039,54 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
           : "";
         const bodySpread = r.hasBody ? `, body` : "";
 
-        L.push(
-          [
-            `  ${r.genName}: (init: ${initName}) => {`,
-            `    const { params${r.hasBody ? ", body" : ""} } = init as any;`,
-            `    const __url = ${pathCode}${qsCode};`,
-            `    const __opt: any = { method: '${r.http.toUpperCase()}'${bodySpread} };`,
-            `    return fetcher(__url, __opt);`,
-            `  },`,
-          ].join("\n"),
-        );
+        // params가 없고 body도 없는 경우
+        if (isEmptyParams && !r.hasBody) {
+          L.push(
+            [
+              `  ${r.genName}: (): Promise<${returnType}> => {`,
+              `    const __url = ${pathCode};`,
+              `    const __opt: any = { method: '${r.http.toUpperCase()}' };`,
+              `    return fetcher(__url, __opt);`,
+              `  },`,
+            ].join("\n"),
+          );
+        }
+        // params가 없고 body만 있는 경우
+        else if (isEmptyParams && r.hasBody) {
+          L.push(
+            [
+              `  ${r.genName}: (init: ${initName}): Promise<${returnType}> => {`,
+              `    const { body } = init as any;`,
+              `    const __url = ${pathCode};`,
+              `    const __opt: any = { method: '${r.http.toUpperCase()}', body };`,
+              `    return fetcher(__url, __opt);`,
+              `  },`,
+            ].join("\n"),
+          );
+        }
+        // params가 있는 경우 (기존 로직)
+        else {
+          L.push(
+            [
+              `  ${r.genName}: (init: ${initName}): Promise<${returnType}> => {`,
+              `    const { params${r.hasBody ? ", body" : ""} } = init as any;`,
+              `    const __url = ${pathCode}${qsCode};`,
+              `    const __opt: any = { method: '${r.http.toUpperCase()}'${bodySpread} };`,
+              `    return fetcher(__url, __opt);`,
+              `  },`,
+            ].join("\n"),
+          );
+        }
       });
       L.push(`};`);
 
       L.push(`\nexport const mutations = {`);
       mutations.forEach((r) => {
-        const initName = getInitTypeName(r.genName);
         L.push(
           [
             `  ${r.genName}: {`,
             `    mutationKey: mutationKeys.${r.genName},`,
-            `    mutationFn: (init: ${initName}) => mutationFns.${r.genName}(init),`,
+            `    mutationFn: mutationFns.${r.genName},`,
             `  },`,
           ].join("\n"),
         );
@@ -752,17 +1113,19 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
     }
   }
 
-  // ===== 루트 aggregator: src/libs/api/index.ts =====
+  // ===== 루트 aggregator: react-query.generated/index.ts =====
   {
     const imports = groupNames
-      .map((g) => `import ${toVarName(g)} from './react-query.generated/${g}';`)
+      .map((g) => `import ${toVarName(g)} from './${g}';`)
       .join("\n");
 
     const apiProps = groupNames.map((g) => `${toVarName(g)}`).join(", ");
 
     const root = await formatTS(
       [
-        `/* AUTO-GENERATED: root api aggregator */`,
+        `/* AUTO-GENERATED: react-query generated api aggregator */`,
+        `/* 이 파일은 자동 생성되므로 수정하지 마세요. */`,
+        `/* src/lib/api/index.ts 에서 이 파일을 import 해서 사용할 수 있습니다. */`,
         imports,
         ``,
         `const api = { ${apiProps} };`,
@@ -771,11 +1134,12 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
         ``,
       ].join("\n"),
     );
-    writeFileSync(ROOT_API_INDEX, root, "utf8");
+    writeFileSync(GENERATED_INDEX, root, "utf8");
   }
 
+  console.log(`✅ Generated folders under ${OUT_BASE_DIR}`);
   console.log(
-    `✅ Generated folders under ${OUT_BASE_DIR} and ${ROOT_API_INDEX}`,
+    `📝 기존 src/lib/api/index.ts는 보존되었습니다. 필요시 react-query.generated/index.ts를 import 하세요.`,
   );
   runEslintCLI();
 }

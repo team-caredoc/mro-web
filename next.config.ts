@@ -3,7 +3,7 @@ import { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: false,
-  webpack: (config, { dev }) => {
+  webpack: (config) => {
     const fileLoaderRule = config.module.rules.find((rule) =>
       rule.test?.test?.(".svg"),
     );
@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
     fileLoaderRule.exclude = /\.svg$/i;
 
     return config;
+  },
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
+      },
+    },
   },
 };
 

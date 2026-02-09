@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "noImplicitAny": false,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -30,7 +30,8 @@
     ".next/types/**/*.ts",
     "eslint.config.mjs",
     "postcss.config.js",
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
