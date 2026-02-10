@@ -1,34 +1,51 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 import { useLogin } from "@/hooks/use-login";
+
+import { Input } from "@/components/ui/input";
 
 import { IconCaredocCI } from "@/components/icons";
 import ImageLoader from "@/components/ImageLoader";
 import ResponsiveRadioButton from "@/components/ResponsiveRadioButton";
 import { cn } from "@/libs/utils";
 
+const UserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  phoneNumber: z.string().min(1),
+  type: z.enum(["케어닥", "파트너점", "직영점"]),
+});
+type UserSchemaType = z.infer<typeof UserSchema>;
+
 function LoginForm() {
   const { onSubmit } = useLogin();
+  const { register, handleSubmit } = useForm<UserSchemaType>({
+    resolver: zodResolver(UserSchema),
+    defaultValues: {
+      email: "caredoc@caredoc.kr",
+      name: "",
+      phoneNumber: "",
+      type: "케어닥",
+    },
+  });
+  const handleSubmitForm = handleSubmit((data) => {
+    console.log(data);
+  });
   return (
-    <div
+    <form
       className={cn(
         "px-[16px]",
         "desktop:grid desktop:grid-cols-[1fr_820px] desktop:px-0",
       )}
+      onSubmit={handleSubmitForm}
     >
       <div className="relative hidden min-h-screen items-center justify-center bg-orange-50 desktop:flex">
         <IconCaredocCI className="absolute left-[40px] top-[40px] h-[24px] text-primary" />
-        <ImageLoader
-          alt=""
-          className={cn(
-            "hidden",
-            "mx-auto mt-[80px] h-[671px] w-[873px] object-cover desktop:flex",
-          )}
-          env="PRODUCTION"
-          height={671}
-          src="/home.png"
-          width={873}
-        />
+        <ImageLoader height={671} src="/home.png" width={873} />
         <svg
           className="absolute right-[-40px] top-[100px]"
           fill="none"
@@ -45,7 +62,7 @@ function LoginForm() {
           />
         </svg>
       </div>
-      <main
+      <div
         className={cn(
           "mx-auto flex min-h-screen max-w-[600px] flex-col items-center justify-center gap-[20px]",
         )}
@@ -94,27 +111,28 @@ function LoginForm() {
               사용자 등록
             </p>
           </div>
-          <div className="flex h-[62px] flex-col items-start justify-center self-stretch rounded-[10px] border border-gray-300 bg-gray-100 px-[16px] py-[12px]">
-            <div className="flex items-center gap-[6px] self-stretch">
-              <p className="tracking-[-0.48px] text-[#bbbbbb] single-16-500">
-                caredoc@caredoc.kr
-              </p>
-            </div>
-          </div>
-          <div className="flex h-[62px] flex-col items-start justify-center self-stretch rounded-[10px] border border-gray-300 bg-gray-100 px-[16px] py-[12px]">
-            <div className="flex items-center gap-[6px] self-stretch">
-              <p className="tracking-[-0.48px] text-[#bbbbbb] single-16-500">
-                홍길동
-              </p>
-            </div>
-          </div>
-          <div className="flex h-[62px] flex-col items-start justify-center self-stretch rounded-[10px] border border-gray-300 bg-gray-100 px-[16px] py-[12px]">
-            <div className="flex items-center gap-[6px] self-stretch">
-              <p className="tracking-[-0.48px] text-[#bbbbbb] single-16-500">
-                010-1234-5678
-              </p>
-            </div>
-          </div>
+          <Input
+            disabled
+            readOnly
+            variant="primary"
+            wrapperClassName="bg-gray-100 w-full text-gray-400"
+            {...register("email")}
+          />
+          <Input
+            disabled
+            readOnly
+            variant="primary"
+            wrapperClassName="bg-gray-100 w-full text-gray-400"
+            {...register("name")}
+          />
+          <Input
+            disabled
+            readOnly
+            variant="primary"
+            wrapperClassName="bg-gray-100 w-full text-gray-400"
+            {...register("phoneNumber")}
+          />
+
           <ResponsiveRadioButton
             options={[
               { text: "케어닥", value: "홍길동" },
@@ -137,8 +155,8 @@ function LoginForm() {
             로그인
           </p>
         </button>
-      </main>
-    </div>
+      </div>
+    </form>
   );
 }
 
