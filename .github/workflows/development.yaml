@@ -9,7 +9,6 @@ env:
   ## TODO CD에 맞게 수정 ( https://github.com/team-caredoc/gitops/tree/main/cd 폴더명과 일치해야함 )
   application-name: mro-web
   ## TODO (optional) 위의 application-name과 argoCD의 application-name이 다를경우 입력해 줍니다.
-  argo-application-name:
   environment: development
 
 jobs:
@@ -25,8 +24,6 @@ jobs:
         run: echo "start-timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
       - id: step2
         run: echo "application-name=${{ env.application-name }}" >> "$GITHUB_OUTPUT"
-      - id: step3
-        run: echo "argo-application-name=${{ env.argo-application-name }}" >> "$GITHUB_OUTPUT"
       - id: step4
         run: echo "environment=${{ env.environment }}" >> "$GITHUB_OUTPUT"
 
