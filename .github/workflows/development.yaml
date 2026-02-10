@@ -4,10 +4,10 @@ on:
   push:
     tags:
       ## TODO CD에 맞게 수정
-      - from-dev-*
+      - mro-web-dev-*
 env:
   ## TODO CD에 맞게 수정 ( https://github.com/team-caredoc/gitops/tree/main/cd 폴더명과 일치해야함 )
-  application-name: front-home
+  application-name: mro-web
   ## TODO (optional) 위의 application-name과 argoCD의 application-name이 다를경우 입력해 줍니다.
   argo-application-name:
   environment: development
