@@ -17,14 +17,13 @@ jobs:
     outputs:
       start-timestamp: ${{ steps.step1.outputs.start-timestamp }}
       application-name: ${{ steps.step2.outputs.application-name }}
-      argo-application-name: ${{ steps.step3.outputs.argo-application-name }}
-      environment: ${{ steps.step4.outputs.environment }}
+      environment: ${{ steps.step3.outputs.environment }}
     steps:
       - id: step1
         run: echo "start-timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
       - id: step2
         run: echo "application-name=${{ env.application-name }}" >> "$GITHUB_OUTPUT"
-      - id: step4
+      - id: step3
         run: echo "environment=${{ env.environment }}" >> "$GITHUB_OUTPUT"
 
   slack-start:
