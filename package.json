@@ -9,8 +9,7 @@
     "lint": "next lint",
     "generate-api-types": "dotenv -e .env -- sh -c 'curl -o swagger.json \"$NEXT_PUBLIC_BASE_URL/reference/v3/api-docs\" && npx swagger-typescript-api generate -n swagger.api.ts -p ./swagger.json -o ./src/libs/api  && rm swagger.json'",
     "gen:rq": "pnpm generate-api-types && tsx scripts/generate-react-query.ts",
-    "gen:sitemap": "tsx scripts/generate-sitemap.ts",
-    "prebuild": "pnpm gen:rq && pnpm gen:sitemap"
+    "gen:sitemap": "tsx scripts/generate-sitemap.ts"
   },
   "dependencies": {
     "@hookform/error-message": "^2.0.1",
