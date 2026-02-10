@@ -41,26 +41,22 @@ jobs:
 
   deploy:
     needs: pre-build
-    uses: team-caredoc/actions/.github/workflows/front-nextjs.yaml@main
-    with:
-      APPLICATION_NAME: ${{ needs.pre-build.outputs.application-name }}
-      ARGO_APPLICATION_NAME: ${{ needs.pre-build.outputs.argo-application-name }}
-      TAG: ${{ github.ref_name }}
-      ORG_ARGO_SERVER_URL: ${{ vars.ORG_DEV_ARGO_SERVER_URL }}
-      ENVIRONMENT: ${{ needs.pre-build.outputs.environment }}
-    secrets:
-      FRONT_ENV_BASE64: ${{ secrets.DEV_FRONT_ENV_BASE64 }}
-      ORG_ACTION_PTA: ${{ secrets.ORG_ACTION_PTA }}
-      ORG_NPM_REGISTRY_TOKEN: ${{ secrets.ORG_NPM_REGISTRY_TOKEN }}
-      ORG_AWS_REGION: ${{ secrets.ORG_DEV_AWS_REGION }}
-      ORG_AWS_ACCOUNT_ID: ${{ secrets.ORG_DEV_AWS_ACCOUNT_ID }}
-      ORG_AWS_ACCESS_KEY_ID: ${{ secrets.ORG_DEV_AWS_ACCESS_KEY_ID }}
-      ORG_AWS_SECRET_ACCESS_KEY: ${{ secrets.ORG_DEV_AWS_SECRET_ACCESS_KEY }}
-      ORG_ARGO_USERNAME: ${{ secrets.ORG_DEV_ARGO_USERNAME }}
-      ORG_ARGO_PASSWORD: ${{ secrets.ORG_DEV_ARGO_PASSWORD }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        run: |
+          npm i -g vercel
+          vercel deploy \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --org-id=${{ secrets.VERCEL_ORG_ID }} \
+            --project-id=${{ secrets.VERCEL_PROJECT_ID }} \
+            --yes
 
   deploy-done:
-    needs: [deploy,pre-build,slack-start]
+    needs: [deploy, pre-build, slack-start]
     if: ${{ always() }}
     uses: team-caredoc/actions/.github/workflows/deploy-done.yaml@main
     with:
@@ -71,5 +67,3 @@ jobs:
       SLACK_TS: ${{ needs.slack-start.outputs.ts }}
     secrets:
       ORG_SLACK_BOT_TOKEN: ${{ secrets.ORG_SLACK_BOT_TOKEN }}
-
-
