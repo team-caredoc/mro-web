@@ -3,9 +3,6 @@
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
-import { useUA } from "@/hooks/ua/UAProviderClient";
-import { useAuth } from "@/hooks/use-auth";
-
 import { AUTH_REDIRECT_URI } from "@/constants/auth";
 
 interface CaredocLoginProps {
@@ -29,20 +26,15 @@ export const useLogin = ({
     (typeof window !== "undefined" ? window.location.href : undefined);
 
   const router = useRouter();
-  const ua = useUA();
-  const { refetch } = useAuth();
+
   const onSubmit = async () => {
     const options =
       "width=600, height=1000,top=50, left=100, scrollbars=yes, status=no, menubar=no, toolbar=no, resizable=no";
 
-    const url = `${authUrl}/member/login?fallbackUrl=${fallbackUrl}&redirect_uri=${propsRedirectUri || AUTH_REDIRECT_URI}`;
-    if (ua.platform === "native") {
-      window.location.href = url;
-    } else {
-      const urlWithPopup =
-        url + (url.includes("?") ? "&" : "?") + "usePopup=true";
-      window.open(urlWithPopup, "_blank", options);
-    }
+    const url = `${authUrl}/internal/login?fallbackUrl=${fallbackUrl}&redirect_uri=${propsRedirectUri || AUTH_REDIRECT_URI}`;
+    const urlWithPopup =
+      url + (url.includes("?") ? "&" : "?") + "usePopup=true";
+    window.open(urlWithPopup, "_blank", options);
   };
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -60,7 +52,6 @@ export const useLogin = ({
         parsedData = event.data;
       }
       if (parsedData.type === "caredoc-auth" && parsedData.status === 200) {
-        refetch();
         onSuccess?.();
         if (typeof parsedData.fallbackUrl === "string") {
           try {

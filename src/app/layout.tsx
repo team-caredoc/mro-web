@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
+import BreakpointProvider from "@/hooks/breakpoint/BreakpointProvider";
 import UAProvider from "@/hooks/ua/UAProvider";
 
 import { Providers } from "@/providers";
@@ -19,9 +20,11 @@ export default function RootLayout({
     <html className={Pretendard.variable} lang="ko">
       <body>
         <UAProvider>
-          <Providers>
-            <NuqsAdapter>{children}</NuqsAdapter>
-          </Providers>
+          <BreakpointProvider>
+            <Providers>
+              <NuqsAdapter>{children}</NuqsAdapter>
+            </Providers>
+          </BreakpointProvider>
         </UAProvider>
       </body>
     </html>
