@@ -1,8 +1,6 @@
 /* AUTO-GENERATED: auth/queries.ts */
-import type * as Types from "@/lib/api/swagger.api";
 
 import { fetcher } from "@/lib/fetcher";
-import { getNextPageParam } from "@/lib/react-query";
 
 /**
  * 이 파일은 GET 엔드포인트만 포함합니다. ({ params })로 호출합니다.
