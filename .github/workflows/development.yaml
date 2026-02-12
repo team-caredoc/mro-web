@@ -59,7 +59,7 @@ jobs:
 
       - name: Setup .npmrc
         run: |
-          npm config set "//npm.pkg.github.com/:_authToken" "${{ secrets.ORG_ACTION_PTA }}"
+          pnpm config set "//npm.pkg.github.com/:_authToken" "${{ secrets.ORG_ACTION_PTA }}"
 
       - name: Install dependencies
         run: pnpm install
