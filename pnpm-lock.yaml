@@ -35,6 +35,9 @@ importers:
       '@tanstack/react-query-next-experimental':
         specifier: ^5.51.15
         version: 5.51.15(@tanstack/react-query@5.51.15(react@19.0.0))(next@16.1.6(@babel/core@7.24.9)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      '@team-caredoc/auth':
+        specifier: 2.0.0-test-12
+        version: 2.0.0-test-12(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       body-scroll-lock:
         specifier: 4.0.0-beta.0
         version: 4.0.0-beta.0
@@ -2007,6 +2010,12 @@ packages:
     resolution: {integrity: sha512-UgFg23SrdIYrmfTSxAUn9g+J64VQy11pb9/EefoY/u2+zWuNMeqEOnvpJhf52XQy0yztQoyM9p6x8PFyTNaxXg==}
     peerDependencies:
       react: ^18.0.0
+
+  '@team-caredoc/auth@2.0.0-test-12':
+    resolution: {integrity: sha512-UefgoQPdbGwHPUu4GzedPYa3I0PBL92vMdC5aQinOkDFf51HtgXwnXpxvV5o2/+mcz/mhetrEzjotAQ8WxJuxg==, tarball: https://npm.pkg.github.com/download/@team-caredoc/auth/2.0.0-test-12/092692781491413822112a3f272e7b70ab7a9e76}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
 
   '@trysound/sax@0.2.0':
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
@@ -6704,6 +6713,15 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.51.15
       react: 19.0.0
+
+  '@team-caredoc/auth@2.0.0-test-12(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.0.2)(react@19.0.0)
+      js-cookie: 3.0.5
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+    transitivePeerDependencies:
+      - '@types/react'
 
   '@trysound/sax@0.2.0': {}
 

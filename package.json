@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-api-types": "dotenv -e .env -- sh -c 'curl -o swagger.json \"$NEXT_PUBLIC_BASE_URL/reference/v3/api-docs\" && npx swagger-typescript-api generate -n swagger.api.ts -p ./swagger.json -o ./src/libs/api  && rm swagger.json'",
+    "generate-api-types": "dotenv -e .env -- sh -c 'curl -o swagger.json \"$AUTH_API_URL/v3/api-docs\" && npx swagger-typescript-api generate -n swagger.api.ts -p ./swagger.json -o ./src/lib/api  && rm swagger.json'",
     "gen:rq": "pnpm generate-api-types && tsx scripts/generate-react-query.ts",
     "gen:sitemap": "tsx scripts/generate-sitemap.ts"
   },
@@ -21,6 +21,7 @@
     "@tanstack/react-query": "^5.51.15",
     "@tanstack/react-query-devtools": "^5.51.15",
     "@tanstack/react-query-next-experimental": "^5.51.15",
+    "@team-caredoc/auth": "2.0.0-test-12",
     "body-scroll-lock": "4.0.0-beta.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

@@ -1137,7 +1137,9 @@ function __qsFromParams(params: Record<string, any>, pathKeys: string[]) {
     writeFileSync(GENERATED_INDEX, root, "utf8");
   }
 
-  console.log(`✅ Generated folders under ${OUT_BASE_DIR}`);
+  console.log(
+    `✅ Generated folders under ${OUT_BASE_DIR}`,
+  );
   console.log(
     `📝 기존 src/lib/api/index.ts는 보존되었습니다. 필요시 react-query.generated/index.ts를 import 하세요.`,
   );

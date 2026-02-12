@@ -6,7 +6,7 @@ import { FieldErrors } from "react-hook-form";
 
 import { Label } from "@/components/ui/label";
 
-import { cn } from "@/libs/utils";
+import { cn } from "@/lib/utils";
 
 const inputVariants = cva(
   "rounded-full px-[16px] relative outline-none disabled:cursor-not-allowed disabled:opacity-50 flex items-center transition-all ",

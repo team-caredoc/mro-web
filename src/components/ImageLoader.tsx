@@ -3,7 +3,7 @@
 import Image, { getImageProps, ImageProps } from "next/image";
 import { useState } from "react";
 
-import { cn } from "@/libs/utils";
+import { cn } from "@/lib/utils";
 
 const SERVICE_PATH = "mro-web";
 const ERROR_SRC = "";

@@ -1,7 +1,7 @@
 // app/actions/getDeviceAction.ts
 "use server";
 
-import { getUA } from "@/libs/get-ua";
+import { getUA } from "@/lib/get-ua";
 
 export async function getUAAction() {
   const device = await getUA();

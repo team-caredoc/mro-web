@@ -4,7 +4,7 @@
 import React, { useEffect } from "react";
 
 import { getUAAction } from "@/app/actions/get-ua-action";
-import { DeviceInfo } from "@/libs/get-ua";
+import { DeviceInfo } from "@/lib/get-ua";
 
 const UAContext = React.createContext<DeviceInfo>({
   platform: "desktop",

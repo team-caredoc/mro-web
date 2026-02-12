@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 import { UAProviderClient } from "@/hooks/ua/UAProviderClient";
 
-import { getUA } from "@/libs/get-ua";
+import { getUA } from "@/lib/get-ua";
 
 /** @example
  * // Server Component

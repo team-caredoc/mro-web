@@ -36,4 +36,4 @@ export const AUTH_WEB_PATHNAME = {
 } as const;
 
 const isDev = process.env.NODE_ENV === "development";
-export const AUTH_REDIRECT_URI = `${isDev ? "http://localhost:3000" : `https://${process.env.NEXT_PUBLIC_DOMAIN}`}/member/login/callback`;
+export const AUTH_REDIRECT_URI = `${isDev ? "http://localhost:3000" : `${process.env.NEXT_PUBLIC_DOMAIN}`}/auth/callback`;

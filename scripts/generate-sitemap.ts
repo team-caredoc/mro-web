@@ -1,10 +1,11 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-export const SITE_URL = "";
+export const SITE_URL = "https://www.caredoc.kr";
 
 const ROOT_DIR = process.cwd();
 const APP_DIR = path.join(ROOT_DIR, "src/app");
+let sitemaps: string[] = [];
 
 /** 안전한 URL 조인: 중복 슬래시 제거(프로토콜의 // 제외) */
 function joinUrl(...parts: Array<string | undefined | null>): string {
@@ -60,7 +61,6 @@ ${urls.map(createSitemap).join("\n")}
  *    - 항상 https://www.caredoc.kr 도메인으로 시작
  */
 async function findSitemapFolders(dir: string): Promise<string[]> {
-  const sitemaps: string[] = [];
   try {
     const files = await fs.readdir(dir, { withFileTypes: true });
     for (const file of files) {
@@ -68,7 +68,7 @@ async function findSitemapFolders(dir: string): Promise<string[]> {
 
       if (file.isDirectory()) {
         if (!file.name.startsWith("_")) {
-          // 폴더명이 sitemap.xml.gz 인 경우
+          // 폴더명이 sitemap.xml 인 경우
           if (file.name === "sitemap.xml.gz") {
             const relativePathArr = path
               .relative(APP_DIR, fullPath)
@@ -89,7 +89,7 @@ async function findSitemapFolders(dir: string): Promise<string[]> {
           } else {
             // 재귀적으로 하위 폴더 탐색
             const nestedSitemaps = await findSitemapFolders(fullPath);
-            sitemaps.push(...nestedSitemaps);
+            sitemaps = sitemaps.concat(nestedSitemaps);
           }
         }
       }

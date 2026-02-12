@@ -1,17 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
+import { useLogin } from "@team-caredoc/auth/hooks";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { useLogin } from "@/hooks/use-login";
 
 import { Input } from "@/components/ui/input";
 
 import { IconCaredocCI } from "@/components/icons";
 import ImageLoader from "@/components/ImageLoader";
 import ResponsiveRadioButton from "@/components/ResponsiveRadioButton";
-import { cn } from "@/libs/utils";
+import api from "@/lib/api/react-query.generated";
+import { cn } from "@/lib/utils";
 
 const UserSchema = z.object({
   email: z.string().email(),
@@ -21,8 +22,18 @@ const UserSchema = z.object({
 });
 type UserSchemaType = z.infer<typeof UserSchema>;
 
-function LoginForm() {
-  const { onSubmit } = useLogin();
+function LoginForm({ csrfToken }: { csrfToken: string }) {
+  const { data } = useQuery(api.partner.queries.getPartnerMe());
+  const { onSubmit } = useLogin({
+    authUrl: `${process.env.NEXT_PUBLIC_AUTH_URL}/partner/login`,
+    scope: "read",
+    responseType: "code",
+    clientId: "mro-web",
+    state: { csrfToken },
+    onSuccess: () => {
+      console.log("onSuccess");
+    },
+  });
   const { register, handleSubmit } = useForm<UserSchemaType>({
     resolver: zodResolver(UserSchema),
     defaultValues: {
@@ -45,7 +56,12 @@ function LoginForm() {
     >
       <div className="relative hidden min-h-screen items-center justify-center bg-orange-50 desktop:flex">
         <IconCaredocCI className="absolute left-[40px] top-[40px] h-[24px] text-primary" />
-        <ImageLoader height={671} src="/home.png" width={873} />
+        <ImageLoader
+          env="PRODUCTION"
+          height={671}
+          src="/home.png"
+          width={873}
+        />
         <svg
           className="absolute right-[-40px] top-[100px]"
           fill="none"
