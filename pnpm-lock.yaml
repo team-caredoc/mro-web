@@ -36,8 +36,8 @@ importers:
         specifier: ^5.51.15
         version: 5.51.15(@tanstack/react-query@5.51.15(react@19.0.0))(next@16.1.6(@babel/core@7.24.9)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
       '@team-caredoc/auth':
-        specifier: 2.0.1
-        version: 2.0.1(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: 2.0.2
+        version: 2.0.2(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       body-scroll-lock:
         specifier: 4.0.0-beta.0
         version: 4.0.0-beta.0
@@ -2011,8 +2011,8 @@ packages:
     peerDependencies:
       react: ^18.0.0
 
-  '@team-caredoc/auth@2.0.1':
-    resolution: {integrity: sha512-Vme20qyDnuKAxnCettcsfBtp3JIg0QoNIrW2CpaivlOvl2dgJWLn3KGI4HJ3HgsCKEvH+zVglraFIqhswXUKrQ==, tarball: https://npm.pkg.github.com/download/@team-caredoc/auth/2.0.1/cf81fd788b3b49b12b23aff23f8c39e031527d51}
+  '@team-caredoc/auth@2.0.2':
+    resolution: {integrity: sha512-obJ/M6Hvfpgr/Ue8Q9QydpzMQ5kKwDXzfnLyxdhoVI4APHUrFfINm1z1TKa6CwW3KQRlAuOr9tgUiZYKLNmLkA==, tarball: https://npm.pkg.github.com/download/@team-caredoc/auth/2.0.2/34be16fa70750ca3d9856b74c5a0e1a31496c509}
     peerDependencies:
       react: '>=18'
       react-dom: '>=18'
@@ -6714,7 +6714,7 @@ snapshots:
       '@tanstack/query-core': 5.51.15
       react: 19.0.0
 
-  '@team-caredoc/auth@2.0.1(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@team-caredoc/auth@2.0.2(@types/react@19.0.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@radix-ui/react-slot': 1.2.4(@types/react@19.0.2)(react@19.0.0)
       js-cookie: 3.0.5
